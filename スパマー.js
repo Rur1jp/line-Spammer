@@ -1,34 +1,48 @@
-import {
-	loginWithAuthToken,
-	loginWithPassword,
-	loginWithQR,
-} from "@evex/linejs";
-import { FileStorage } from "@evex/linejs/storage";
-import { v4 as uuidv4 } from "uuid";
+import { Client } from "@evex/linejs";
+import { RateLimitter } from "@evex/linejs/rate-limit";
 
-const client = await loginWithPassword({
-	email: "めあ、ど",
-	password: "ぱすわ",
-	onPincodeRequest(pin) {
-		console.log(pin);
-	},
-}, {
-	device: "DESKTOPWIN",
-	storage: new FileStorage("./storage.json"),
+const client = new Client({
+    device: "IOSIPAD",
+    squareRateLimitter: new RateLimitter(5, 3000),
 });
 
-client.on("message", async (message) => {
-	console.log(message.text);
-	if (message.text === "!spammer") {
-		for (let i = 0; i < 100; i++) {
-			await client.sendText({
-				to: message.threadId,
-				text: `https://x.com/Rur1_jp\n${uuidv4()}`
-// ｢\n｣が改行です｢${uuidv4}｣がランダム文字列です😺そもそもこれがわかんないなら使うな
-// for (let i = 0; i < 100; i++) の100の部分が送信回数でうあうあう
-			});
-		}
-	}
+client.on("pincall", (pincode) => {
+    console.log(`pin:${pincode}`);
 });
 
-client.listen({ talk: true });
+client.on("ready", async (user) => {
+    console.log(`login name:${user.displayName}`);
+});
+
+
+client.on("update:authtoken", (authtoken) => {
+    console.log("Token", authtoken);
+});
+
+client.on("qrcall", (qrcodeUrl) => console.log(qrcodeUrl));
+
+function randomStr(length = 8) {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
+
+
+client.on("square:message", async (message) => {
+    if (message.content.trim() === "!spam") {
+        for (let i = 0; i < 114514; i++) {
+            const msg = `おわったんよw x.com/rur1_jp ${randomStr(8)}`;
+            await message.send({
+                text: msg,
+                e2ee: true,
+            });
+            console.log("[+]spam success");
+        }
+    }
+});
+
+
+await client.login({
+    email: "めあぉ",
+    password: "ぱす",
+    pincode: "000000",
+});
